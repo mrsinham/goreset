@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
@@ -17,7 +16,7 @@ import (
 func main() {
 
 	app := cli.App("reset", "generate reset method")
-	chosenDir := app.StringArg("DIR", "", "package to walk to")
+	chosenPackage := app.StringArg("PKG", "", "package to walk to")
 	chosenStruct := app.StringArg("STRUCTURE", "", "structure to attach to Reset() method to")
 
 	exitOnError := func(err error) {
@@ -26,7 +25,7 @@ func main() {
 	}
 	var err error
 	app.Action = func() {
-		err = parsePackage(chosenDir, chosenStruct)
+		err = parsePackage(chosenPackage, chosenStruct)
 		if err != nil {
 			exitOnError(err)
 		}
@@ -36,28 +35,37 @@ func main() {
 		exitOnError(err)
 	}
 
-	spew.Dump(chosenDir, chosenStruct)
+	spew.Dump(chosenPackage, chosenStruct)
 
 }
 
 // parsePackage launchs the generation
-func parsePackage(dir *string, structure *string) error {
+func parsePackage(pkg *string, structure *string) error {
 
-	if dir == nil {
+	if pkg == nil {
 		return errors.New("no directory submitted")
 	}
 
-	if strings.TrimSpace(*dir) == "" {
+	if strings.TrimSpace(*pkg) == "" {
 		return errors.New("directory empty submitted")
 	}
 
+	// get the path of the package
+	pkgdir := os.Getenv("GOPATH") + "/src/" + *pkg
+
 	fset := token.NewFileSet()
-	f, err := parser.ParseDir(fset, *dir, nil, 0)
+	f, err := parser.ParseDir(fset, pkgdir, nil, 0)
 	if err != nil {
 		return err
 	}
 
-	ast.Print(fset, f)
+	for i := range f {
+		for j := range f[i].Files {
+			findStructures(fset, f[i].Files[j], i, j, *structure)
+		}
+	}
+
+	//ast.Print(fset, f)
 
 	return nil
 }

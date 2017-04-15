@@ -1,15 +1,7 @@
 package reset
 
-import "go/ast"
+import "io"
 
-type Field struct {
-	Name string
-	Type ast.StructType
+type test struct {
+	io.Writer
 }
-
-type structure struct {
-	fieldList []*Field
-	Name string
-}
-
-
