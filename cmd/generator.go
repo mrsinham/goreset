@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/dave/jennifer/jen"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -130,8 +131,13 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 				}
 			case *types.Array:
 				//spew.Config.DisableMethods = true
-				o := strings.LastIndex(t.Elem().String(), ".")
-				value.Index(jen.Lit(int(t.Len()))).Qual(t.Elem().String()[:o], t.Elem().String()[o+1:]).Block()
+				if o := strings.LastIndex(t.Elem().String(), "."); o >= 0 {
+					value.Index(jen.Lit(int(t.Len()))).Qual(t.Elem().String()[:o], t.Elem().String()[o+1:]).Block()
+					spew.Dump(o)
+				} else {
+					value.Index(jen.Lit(int(t.Len()))).Id(t.Elem().String()).Block()
+				}
+				spew.Dump(t.Elem().String())
 				//value.Index(t.Len()).
 			case *types.Map:
 				value.Nil()
