@@ -60,8 +60,12 @@ func parsePackage(pkg *string, structure *string) error {
 	}
 
 	for i := range f {
+
 		for j := range f[i].Files {
-			findStructures(fset, f[i].Files[j], i, j, *structure)
+			err = findStructures(fset, f[i].Files[j], pkgdir, i, j, *structure)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

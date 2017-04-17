@@ -44,11 +44,11 @@ func (s *structFinder) matches() []*ast.TypeSpec {
 	return s.found
 }
 
-func findStructures(set *token.FileSet, insideStruct *ast.File, pkgName string, fileName string, structToFind string) error {
-	//spew.Dump(insideStruct)
+func findStructures(set *token.FileSet, currentFile *ast.File, dirname string, pkgName string, fileName string, structToFind string) error {
+	//spew.Dump(currentFile)
 	sf := newStructFinder(structToFind)
-	ast.Inspect(insideStruct, sf.find)
+	ast.Inspect(currentFile, sf.find)
 
-	g := newGenerator(sf.matches(), pkgName, os.Stdout)
+	g := newGenerator(sf.matches(), dirname, []*ast.File{currentFile}, set, pkgName, os.Stdout)
 	return g.do()
 }
