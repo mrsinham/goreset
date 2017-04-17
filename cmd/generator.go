@@ -12,6 +12,8 @@ import (
 
 	"strings"
 
+	"reflect"
+
 	"github.com/dave/jennifer/jen"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -110,11 +112,23 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 	// TODO: ensure that st.Fields is not empty
 	objectID := string(t.Name.Name[0])
 	for i := range st.Fields.List {
+		spew.Dump(st.Fields.List[i])
+
 		// fieds with names
 		if len(st.Fields.List[i].Names) == 0 {
 
 			// TODO here lies the inheritance by composition
 			continue
+		}
+
+		var nonil bool
+		// read the current tags
+		if st.Fields.List[i].Tag != nil {
+			bst := reflect.StructTag(st.Fields.List[i].Tag.Value)
+			var tc string
+			if tc, ok = bst.Lookup("reset"); ok && tc == "nonil" {
+				nonil = true
+			}
 		}
 
 		if typ := g.defs[st.Fields.List[i].Names[0]]; typ != nil {
@@ -133,18 +147,30 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 				//spew.Config.DisableMethods = true
 				if o := strings.LastIndex(t.Elem().String(), "."); o >= 0 {
 					value.Index(jen.Lit(int(t.Len()))).Qual(t.Elem().String()[:o], t.Elem().String()[o+1:]).Block()
-					spew.Dump(o)
 				} else {
 					value.Index(jen.Lit(int(t.Len()))).Id(t.Elem().String()).Block()
 				}
-				spew.Dump(t.Elem().String())
-				//value.Index(t.Len()).
 			case *types.Map:
-				value.Nil()
+				if !nonil {
+					value.Nil()
+				} else {
+					// we dont want the nil value for this type,
+					// we want to reinit the value
+
+				}
 			case *types.Pointer:
-				value.Nil()
+				if !nonil {
+					value.Nil()
+				} else {
+
+				}
+
 			case *types.Slice:
-				value.Nil()
+				if !nonil {
+					value.Nil()
+				} else {
+
+				}
 
 			default:
 				//spew.Dump(t)

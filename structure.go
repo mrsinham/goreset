@@ -17,6 +17,7 @@ type test struct {
 	diane                           [4]customFiles
 	moineau                         [5]other.MyOtherType
 	blublu                          []int
+	bluWithNoNil                    *blu `reset:"nonil" json:"none"`
 	blu                             *blu
 	fieldWithCustomTypeFromOtherPkg other.MyOtherType
 	fieldWithCustomType             customFiles
