@@ -112,7 +112,7 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 	// TODO: ensure that st.Fields is not empty
 	objectID := string(t.Name.Name[0])
 	for i := range st.Fields.List {
-		spew.Dump(st.Fields.List[i])
+		//spew.Dump(st.Fields.List[i])
 
 		// fieds with names
 		if len(st.Fields.List[i].Names) == 0 {
@@ -124,9 +124,9 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 		var nonil bool
 		// read the current tags
 		if st.Fields.List[i].Tag != nil {
-			bst := reflect.StructTag(st.Fields.List[i].Tag.Value)
+			bst := reflect.StructTag(strings.Trim(st.Fields.List[i].Tag.Value, "`"))
 			var tc string
-			if tc, ok = bst.Lookup("reset"); ok && tc == "nonil" {
+			if tc = bst.Get("reset"); tc == "nonil" {
 				nonil = true
 			}
 		}
@@ -156,13 +156,38 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 				} else {
 					// we dont want the nil value for this type,
 					// we want to reinit the value
+					var m *jen.Statement
+					if o := strings.LastIndex(t.Key().String(), "."); o >= 0 {
+						m = jen.Map(jen.Qual(t.Key().String()[:o], t.Key().String()[o+1:]))
+						//value.Index(jen.Lit(int(t.Len()))).Qual(t.Elem().String()[:o], t.Elem().String()[o+1:]).Block()
+					} else {
+						m = jen.Map(jen.Id(t.Key().String()))
+					}
+
+					if o := strings.LastIndex(t.Elem().String(), "."); o >= 0 {
+						m.Qual(t.Elem().String()[:o], t.Elem().String()[o+1:])
+					} else {
+						m.Id(t.Elem().String())
+					}
+
+					value.Make(m)
 
 				}
 			case *types.Pointer:
 				if !nonil {
 					value.Nil()
 				} else {
-
+					var m *jen.Statement
+					// removing the pointer reference
+					identWithoutpointer := t.String()[1:]
+					spew.Dump(identWithoutpointer)
+					if o := strings.LastIndex(identWithoutpointer, "."); o >= 0 {
+						m = jen.Qual(identWithoutpointer[:o], identWithoutpointer[o+1:])
+						//value.Index(jen.Lit(int(t.Len()))).Qual(t.Elem().String()[:o], t.Elem().String()[o+1:]).Block()
+					} else {
+						m = jen.Id(identWithoutpointer)
+					}
+					value.Op("&").Add(m).Block()
 				}
 
 			case *types.Slice:
