@@ -12,8 +12,9 @@ import (
 
 	"strings"
 
+	"reflect"
+
 	"github.com/dave/jennifer/jen"
-	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -119,20 +120,20 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 			continue
 		}
 
-		//var nonil bool
-		//// read the current tags
-		//if st.Fields.List[i].Tag != nil {
-		//	bst := reflect.StructTag(strings.Trim(st.Fields.List[i].Tag.Value, "`"))
-		//	var tc string
-		//	if tc = bst.Get("reset"); tc == "nonil" {
-		//		nonil = true
-		//	}
-		//}
+		var nonil bool
+		// read the current tags
+		if st.Fields.List[i].Tag != nil {
+			bst := reflect.StructTag(strings.Trim(st.Fields.List[i].Tag.Value, "`"))
+			var tc string
+			if tc = bst.Get("reset"); tc == "nonil" {
+				nonil = true
+			}
+		}
 
 		if typ := g.defs[st.Fields.List[i].Names[0]]; typ != nil {
 
 			var value *jen.Statement = jen.Id(objectID).Op(".").Id(st.Fields.List[i].Names[0].Name).Op("=")
-			err := writeType(typ.Type(), value)
+			err := writeType(typ.Type(), nonil, value)
 			if err != nil {
 				return err
 			}
@@ -151,7 +152,7 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 	return nil
 }
 
-func writeType(typ types.Type, value *jen.Statement) error {
+func writeType(typ types.Type, nonil bool, value *jen.Statement) error {
 	switch t := typ.Underlying().(type) {
 	case *types.Basic:
 		bi := t.Info()
@@ -163,8 +164,6 @@ func writeType(typ types.Type, value *jen.Statement) error {
 		}
 	case *types.Array:
 		v, err := write(t)
-
-		spew.Dump(v, err)
 		if err != nil {
 			return err
 		}
@@ -177,7 +176,15 @@ func writeType(typ types.Type, value *jen.Statement) error {
 		//}
 
 	case *types.Map:
-		value.Nil()
+		if nonil {
+			v, err := write(t)
+			if err != nil {
+				return err
+			}
+			value.Make(v)
+		} else {
+			value.Nil()
+		}
 	case *types.Pointer:
 		value.Nil()
 	case *types.Slice:
@@ -200,6 +207,17 @@ func write(typ types.Type) (*jen.Statement, error) {
 		} else {
 			return jen.Lit(t.String()), nil
 		}
+	case *types.Map:
+		key, err := write(t.Key())
+		if err != nil {
+			return nil, err
+		}
+		var val *jen.Statement
+		val, err = write(t.Elem())
+		if err != nil {
+			return nil, err
+		}
+		return jen.Map(key).Add(val), nil
 
 	case *types.Array:
 		j := jen.Index(jen.Lit(int(t.Len())))
@@ -218,7 +236,6 @@ func write(typ types.Type) (*jen.Statement, error) {
 		j.Add(el)
 		return j, nil
 	default:
-		spew.Dump(typ, typ.String())
 	}
 	return nil, nil
 }
