@@ -12,8 +12,6 @@ import (
 
 	"strings"
 
-	"reflect"
-
 	"github.com/dave/jennifer/jen"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -121,91 +119,28 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 			continue
 		}
 
-		var nonil bool
-		// read the current tags
-		if st.Fields.List[i].Tag != nil {
-			bst := reflect.StructTag(strings.Trim(st.Fields.List[i].Tag.Value, "`"))
-			var tc string
-			if tc = bst.Get("reset"); tc == "nonil" {
-				nonil = true
-			}
-		}
+		//var nonil bool
+		//// read the current tags
+		//if st.Fields.List[i].Tag != nil {
+		//	bst := reflect.StructTag(strings.Trim(st.Fields.List[i].Tag.Value, "`"))
+		//	var tc string
+		//	if tc = bst.Get("reset"); tc == "nonil" {
+		//		nonil = true
+		//	}
+		//}
 
 		if typ := g.defs[st.Fields.List[i].Names[0]]; typ != nil {
 
 			var value *jen.Statement = jen.Id(objectID).Op(".").Id(st.Fields.List[i].Names[0].Name).Op("=")
-			switch t := typ.Type().Underlying().(type) {
-			case *types.Basic:
-				bi := t.Info()
-				if bi&types.IsInteger != 0 {
-					value.Lit(0)
-				}
-				if bi&types.IsString != 0 {
-					value.Lit("")
-				}
-			case *types.Array:
-				//spew.Config.DisableMethods = true
-				if o := strings.LastIndex(t.Elem().String(), "."); o >= 0 {
-					value.Index(jen.Lit(int(t.Len()))).Qual(t.Elem().String()[:o], t.Elem().String()[o+1:]).Block()
-				} else {
-					value.Index(jen.Lit(int(t.Len()))).Id(t.Elem().String()).Block()
-				}
-			case *types.Map:
-				if !nonil {
-					value.Nil()
-				} else {
-					// we dont want the nil value for this type,
-					// we want to reinit the value
-					var m *jen.Statement
-					if o := strings.LastIndex(t.Key().String(), "."); o >= 0 {
-						m = jen.Map(jen.Qual(t.Key().String()[:o], t.Key().String()[o+1:]))
-						//value.Index(jen.Lit(int(t.Len()))).Qual(t.Elem().String()[:o], t.Elem().String()[o+1:]).Block()
-					} else {
-						m = jen.Map(jen.Id(t.Key().String()))
-					}
-
-					if o := strings.LastIndex(t.Elem().String(), "."); o >= 0 {
-						m.Qual(t.Elem().String()[:o], t.Elem().String()[o+1:])
-					} else {
-						m.Id(t.Elem().String())
-					}
-
-					value.Make(m)
-
-				}
-			case *types.Pointer:
-				if !nonil {
-					value.Nil()
-				} else {
-					var m *jen.Statement
-					// removing the pointer reference
-					identWithoutpointer := t.String()[1:]
-					spew.Dump(identWithoutpointer)
-					if o := strings.LastIndex(identWithoutpointer, "."); o >= 0 {
-						m = jen.Qual(identWithoutpointer[:o], identWithoutpointer[o+1:])
-						//value.Index(jen.Lit(int(t.Len()))).Qual(t.Elem().String()[:o], t.Elem().String()[o+1:]).Block()
-					} else {
-						m = jen.Id(identWithoutpointer)
-					}
-					value.Op("&").Add(m).Block()
-				}
-
-			case *types.Slice:
-				if !nonil {
-					value.Nil()
-				} else {
-
-				}
-
-			default:
-				//spew.Dump(t)
-				return errors.New("unsupported type")
+			err := writeType(typ.Type(), value)
+			if err != nil {
+				return err
 			}
+
 			magicalCode = append(magicalCode, value)
 
 		}
 
-		//st.Fields.List[i].
 	}
 
 	g.buf.Func().Params(jen.Id(objectID).Op("*").Id(t.Name.Name)).Id("Reset").Params().Block(
@@ -213,9 +148,77 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 		magicalCode...,
 	)
 
-	//for i := range st.Fields.List {
-	//st.Fields.List[i].
-	//}
-
 	return nil
+}
+
+func writeType(typ types.Type, value *jen.Statement) error {
+	switch t := typ.Underlying().(type) {
+	case *types.Basic:
+		bi := t.Info()
+		if bi&types.IsInteger != 0 {
+			value.Lit(0)
+		}
+		if bi&types.IsString != 0 {
+			value.Lit("")
+		}
+	case *types.Array:
+		v, err := write(t)
+
+		spew.Dump(v, err)
+		if err != nil {
+			return err
+		}
+
+		value.Add(jen.List(v)).Block()
+		//if o := strings.LastIndex(t.Ele().String(), "."); o >= 0 {
+		//	value.Index(jen.Lit(int(t.Len()))).Qual(t.Elem().String()[:o], t.Elem().String()[o+1:]).Block()
+		//} else {
+		//	value.Index(jen.Lit(int(t.Len()))).Id(t.Elem().String()).Block()
+		//}
+
+	case *types.Map:
+		value.Nil()
+	case *types.Pointer:
+		value.Nil()
+	case *types.Slice:
+		value.Nil()
+	case *types.Chan:
+		value.Nil()
+
+	default:
+		//spew.Dump(t)
+		return errors.New("unsupported type")
+	}
+	return nil
+}
+
+func write(typ types.Type) (*jen.Statement, error) {
+	switch t := typ.(type) {
+	case *types.Named:
+		if o := strings.LastIndex(t.String(), "."); o >= 0 {
+			return jen.Qual(t.String()[:o], t.String()[o+1:]), nil
+		} else {
+			return jen.Lit(t.String()), nil
+		}
+
+	case *types.Array:
+		j := jen.Index(jen.Lit(int(t.Len())))
+		el, err := write(t.Elem())
+		if err != nil {
+			return nil, err
+		}
+		j.Add(el)
+		return j, nil
+	case *types.Slice:
+		j := jen.Index()
+		el, err := write(t.Elem())
+		if err != nil {
+			return nil, err
+		}
+		j.Add(el)
+		return j, nil
+	default:
+		spew.Dump(typ, typ.String())
+	}
+	return nil, nil
 }
