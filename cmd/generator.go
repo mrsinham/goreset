@@ -15,6 +15,7 @@ import (
 	"reflect"
 
 	"github.com/dave/jennifer/jen"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -169,12 +170,6 @@ func writeType(typ types.Type, nonil bool, value *jen.Statement) error {
 		}
 
 		value.Add(jen.List(v)).Block()
-		//if o := strings.LastIndex(t.Ele().String(), "."); o >= 0 {
-		//	value.Index(jen.Lit(int(t.Len()))).Qual(t.Elem().String()[:o], t.Elem().String()[o+1:]).Block()
-		//} else {
-		//	value.Index(jen.Lit(int(t.Len()))).Id(t.Elem().String()).Block()
-		//}
-
 	case *types.Map:
 		if nonil {
 			v, err := write(t)
@@ -186,11 +181,37 @@ func writeType(typ types.Type, nonil bool, value *jen.Statement) error {
 			value.Nil()
 		}
 	case *types.Pointer:
-		value.Nil()
+		if nonil {
+			// we want to know how to write the underlying object
+			v, err := write(t)
+			if err != nil {
+				return err
+			}
+			// instantiate new pointer
+			value.Op("&").Add(v).Block()
+		} else {
+			value.Nil()
+		}
 	case *types.Slice:
-		value.Nil()
+		if nonil {
+			v, err := write(t)
+			if err != nil {
+				return err
+			}
+			value.Make(jen.List(v, jen.Lit(0)))
+		} else {
+			value.Nil()
+		}
 	case *types.Chan:
-		value.Nil()
+		if nonil {
+			v, err := write(t)
+			if err != nil {
+				return err
+			}
+			value.Make(v)
+		} else {
+			value.Nil()
+		}
 
 	default:
 		//spew.Dump(t)
@@ -235,7 +256,22 @@ func write(typ types.Type) (*jen.Statement, error) {
 		}
 		j.Add(el)
 		return j, nil
+	case *types.Pointer:
+		// remove the pointer star
+		id := t.String()[1:]
+		if o := strings.LastIndex(id, "."); o >= 0 {
+			return jen.Qual(id[:o], id[o+1:]), nil
+		} else {
+			return jen.Lit(id), nil
+		}
+	case *types.Chan:
+		el, err := write(t.Elem())
+		if err != nil {
+			return nil, err
+		}
+		return jen.Chan().Add(el), nil
 	default:
+		spew.Dump(t)
 	}
 	return nil, nil
 }
