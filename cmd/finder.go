@@ -57,13 +57,22 @@ func generate(
 	sf := newStructFinder(structToFind)
 	ast.Inspect(currentFile, sf.find)
 
+	// structure not found
+	if len(sf.matches()) == 0 {
+		return nil
+	}
+
 	var writer io.Writer
 	if !write {
 		writer = os.Stdout
 	} else {
+		resetFile := strings.Replace(fileName, ".go", "_reset.go", 1)
+		// delete if needed
+		_ = os.Remove(resetFile)
+
 		// write to a file
 		var err error
-		writer, err = os.OpenFile(strings.Replace(fileName, ".go", "_reset.go", 1), os.O_CREATE|os.O_RDWR, 0600)
+		writer, err = os.OpenFile(resetFile, os.O_CREATE|os.O_RDWR, 0600)
 		if err != nil {
 			return err
 		}
