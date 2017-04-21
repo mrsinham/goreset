@@ -13,6 +13,8 @@ type blu struct {
 
 type customFiles int
 
+type customFunc func() error
+
 type test struct {
 	//monAnge                         [5]int
 	diane [4]customFiles
@@ -24,10 +26,12 @@ type test struct {
 	channelDeMoineau                chan chan *othertoo.Diane `reset:"nonil"`
 	blu                             *blu
 	fieldWithCustomTypeFromOtherPkg other.MyOtherType
+	testFunction                    []func(i int) error `reset:"nonil"`
 	fieldWithCustomType             customFiles
 	teststr                         string
 	testMap                         map[string]int
 	// testint is here
 	testint int
+	tutu    io.Writer
 	io.Writer
 }

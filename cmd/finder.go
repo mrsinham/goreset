@@ -6,6 +6,7 @@ import (
 
 	"strings"
 
+	"io"
 	"os"
 )
 
@@ -44,11 +45,30 @@ func (s *structFinder) matches() []*ast.TypeSpec {
 	return s.found
 }
 
-func findStructures(set *token.FileSet, currentFile *ast.File, dirname string, pkgName string, fileName string, structToFind string) error {
-	//spew.Dump(currentFile)
+func generate(
+	set *token.FileSet,
+	currentFile *ast.File,
+	dirname string,
+	pkgName string,
+	fileName string,
+	structToFind string,
+	write bool,
+) error {
 	sf := newStructFinder(structToFind)
 	ast.Inspect(currentFile, sf.find)
 
-	g := newGenerator(sf.matches(), dirname, []*ast.File{currentFile}, set, pkgName, os.Stdout)
+	var writer io.Writer
+	if !write {
+		writer = os.Stdout
+	} else {
+		// write to a file
+		var err error
+		writer, err = os.OpenFile(strings.Replace(fileName, ".go", "_reset.go", 1), os.O_CREATE|os.O_RDWR, 0600)
+		if err != nil {
+			return err
+		}
+	}
+
+	g := newGenerator(sf.matches(), dirname, []*ast.File{currentFile}, set, pkgName, writer)
 	return g.do()
 }

@@ -14,8 +14,9 @@ import (
 
 	"reflect"
 
+	"fmt"
+
 	"github.com/dave/jennifer/jen"
-	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -62,7 +63,6 @@ func (g *generator) init() error {
 
 	config := types.Config{Importer: importer.Default(), FakeImportC: true}
 
-	//var typesPkg *types.Package
 	var err error
 	g.pkg, err = config.Check(g.dirName, g.fs, g.files, infos)
 	if err != nil {
@@ -112,7 +112,6 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 	// TODO: ensure that st.Fields is not empty
 	objectID := string(t.Name.Name[0])
 	for i := range st.Fields.List {
-		//spew.Dump(st.Fields.List[i])
 
 		// fieds with names
 		if len(st.Fields.List[i].Names) == 0 {
@@ -183,7 +182,7 @@ func writeType(typ types.Type, nonil bool, value *jen.Statement) error {
 	case *types.Pointer:
 		if nonil {
 			// we want to know how to write the underlying object
-			v, err := write(t)
+			v, err := write(t.Elem())
 			if err != nil {
 				return err
 			}
@@ -213,8 +212,11 @@ func writeType(typ types.Type, nonil bool, value *jen.Statement) error {
 			value.Nil()
 		}
 
+	case *types.Signature:
+		value.Nil()
+	case *types.Interface:
+		value.Nil()
 	default:
-		//spew.Dump(t)
 		return errors.New("unsupported type")
 	}
 	return nil
@@ -260,9 +262,9 @@ func write(typ types.Type) (*jen.Statement, error) {
 		// remove the pointer star
 		id := t.String()[1:]
 		if o := strings.LastIndex(id, "."); o >= 0 {
-			return jen.Qual(id[:o], id[o+1:]), nil
+			return jen.Op("*").Qual(id[:o], id[o+1:]), nil
 		} else {
-			return jen.Lit(id), nil
+			return jen.Op("*").Lit(id), nil
 		}
 	case *types.Chan:
 		el, err := write(t.Elem())
@@ -270,8 +272,15 @@ func write(typ types.Type) (*jen.Statement, error) {
 			return nil, err
 		}
 		return jen.Chan().Add(el), nil
+	case *types.Signature:
+		id := t.String()
+		if o := strings.LastIndex(id, "."); o >= 0 {
+			return jen.Qual(id[:o], id[o+1:]), nil
+		} else {
+			return jen.Op(id), nil
+		}
 	default:
-		spew.Dump(t)
+		return nil, fmt.Errorf("unsupported type %v", t.String())
 	}
 	return nil, nil
 }

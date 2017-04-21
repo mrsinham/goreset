@@ -9,7 +9,6 @@ import (
 
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jawher/mow.cli"
 )
 
@@ -19,13 +18,16 @@ func main() {
 	chosenPackage := app.StringArg("PKG", "", "package to walk to")
 	chosenStruct := app.StringArg("STRUCTURE", "", "structure to attach to Reset() method to")
 
+	// write
+	write := app.BoolOpt("w", false, "writes the result in file")
+
 	exitOnError := func(err error) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 	var err error
 	app.Action = func() {
-		err = parsePackage(chosenPackage, chosenStruct)
+		err = parsePackage(chosenPackage, chosenStruct, write)
 		if err != nil {
 			exitOnError(err)
 		}
@@ -35,12 +37,10 @@ func main() {
 		exitOnError(err)
 	}
 
-	spew.Dump(chosenPackage, chosenStruct)
-
 }
 
 // parsePackage launchs the generation
-func parsePackage(pkg *string, structure *string) error {
+func parsePackage(pkg *string, structure *string, write *bool) error {
 
 	if pkg == nil {
 		return errors.New("no directory submitted")
@@ -48,6 +48,11 @@ func parsePackage(pkg *string, structure *string) error {
 
 	if strings.TrimSpace(*pkg) == "" {
 		return errors.New("directory empty submitted")
+	}
+
+	var writeToFile bool
+	if write != nil && *write {
+		writeToFile = true
 	}
 
 	// get the path of the package
@@ -60,16 +65,13 @@ func parsePackage(pkg *string, structure *string) error {
 	}
 
 	for i := range f {
-
 		for j := range f[i].Files {
-			err = findStructures(fset, f[i].Files[j], pkgdir, i, j, *structure)
+			err = generate(fset, f[i].Files[j], pkgdir, i, j, *structure, writeToFile)
 			if err != nil {
 				return err
 			}
 		}
 	}
-
-	//ast.Print(fset, f)
 
 	return nil
 }
