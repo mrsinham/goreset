@@ -77,7 +77,7 @@ func (g *generator) do() error {
 		}
 	}
 	for i := range g.structures {
-		switch t := g.structures[i].Type.(type) {
+		switch	 g.structures[i].Type.(type) {
 		case *ast.StructType:
 			if g.defs[g.structures[i].Name] != nil {
 				err = g.doOne(g.defs[g.structures[i].Name].Type())
