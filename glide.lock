@@ -1,0 +1,14 @@
+hash: 1dda8d69ed06b23b7b0cdd60ea889f9c0beda36e359c5a381deeef44bd77fb5b
+updated: 2017-04-20T22:12:41.718295018+02:00
+imports:
+- name: github.com/dave/jennifer
+  version: 107c2238b846cdfb7ee9b13c2f846c5989b9ae79
+  subpackages:
+  - jen
+- name: github.com/davecgh/go-spew
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
+  subpackages:
+  - spew
+- name: github.com/jawher/mow.cli
+  version: d3ffbc2f98b83e09dc8efd55ecec75eb5fd656ec
+testImports: []

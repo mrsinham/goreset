@@ -1,0 +1,7 @@
+package: github.com/mrsinham/zerogen/cmd
+import:
+- package: github.com/dave/jennifer
+  version: ~0.13.0
+  subpackages:
+  - jen
+- package: github.com/jawher/mow.cli
