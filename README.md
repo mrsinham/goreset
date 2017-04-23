@@ -43,3 +43,8 @@ func (m *mystructure) Reset() {
 ```
 
 just add the -w flag to write it to mystructure_reset.go.
+
+Zerogen handles many types as you can see :
+
+
+

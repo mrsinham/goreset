@@ -213,6 +213,13 @@ func writeType(typ types.Type, nonil bool, value *jen.Statement) error {
 
 func write(typ types.Type) (*jen.Statement, error) {
 	switch t := typ.(type) {
+	case *types.Basic:
+		if o := strings.LastIndex(t.String(), "."); o >= 0 {
+			return jen.Qual(t.String()[:o], t.String()[o+1:]), nil
+		} else {
+			// op is not the right method, it should be a
+			return jen.Id(t.String()), nil
+		}
 	case *types.Named:
 		if o := strings.LastIndex(t.String(), "."); o >= 0 {
 			return jen.Qual(t.String()[:o], t.String()[o+1:]), nil
