@@ -77,19 +77,26 @@ func (g *generator) do() error {
 		}
 	}
 	for i := range g.structures {
-		err = g.doOne(g.structures[i])
-		if err != nil {
-			return err
+		switch t := g.structures[i].Type.(type) {
+		case *ast.StructType:
+			if g.defs[g.structures[i].Name] != nil {
+				err = g.doOne(g.defs[g.structures[i].Name].Type())
+				if err != nil {
+					return err
+				}
+			}
+		default:
 		}
+
 	}
 
 	return g.buf.Render(g.w)
 }
 
-func (g *generator) doOne(t *ast.TypeSpec) error {
-	var st *ast.StructType
+func (g *generator) doOne(t types.Type) error {
+	var st *types.Struct
 	var ok bool
-	if st, ok = t.Type.(*ast.StructType); !ok {
+	if st, ok = t.Underlying().(*types.Struct); !ok {
 		// TODO: prevent generator to receive only valid structure
 		return errors.New("type spec is not a structtype")
 	}
@@ -99,13 +106,22 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 	var magicalCode []jen.Code
 
 	// TODO: ensure that st.Fields is not empty
-	objectID := string(t.Name.Name[0])
-	for i := range st.Fields.List {
+	at := strings.Split(t.String(), ".")
+
+	if len(at) == 0 {
+		return nil
+	}
+	objectID := string(at[len(at)-1])
+	idObjectID := objectID[0:1]
+
+	for i := 0; i < st.NumFields(); i++ {
+		f := st.Field(i)
 
 		var nonil bool
 		// read the current tags
-		if st.Fields.List[i].Tag != nil {
-			bst := reflect.StructTag(strings.Trim(st.Fields.List[i].Tag.Value, "`"))
+
+		if st.Tag(i) != "" {
+			bst := reflect.StructTag(strings.Trim(st.Tag(i), "`"))
 			var tc string
 			if tc = bst.Get("zerogen"); tc == "nonil" {
 				nonil = true
@@ -113,49 +129,39 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 		}
 
 		// fieds without names
-		if len(st.Fields.List[i].Names) == 0 {
+		if f.String() == "" {
 
 			// TODO interface
 
 			// TODO here lies the inheritance by composition
-			//spew.Dump(st.Fields.List[i], g.defs)
-			switch t := st.Fields.List[i].Type.(type) {
-			case *ast.SelectorExpr:
-				if g.defs[t.Sel] != nil {
-					switch v := g.defs[t.Sel].Type().Underlying().(type) {
-					case *types.Struct:
-						for i := 0; i < v.NumFields(); i++ {
-							f := v.Field(i)
-							var value *jen.Statement = jen.Id(objectID).Op(".").Id(f.Name()).Op("=")
-							err := writeType(f.Type(), nonil, value)
-							if err != nil {
-								return err
-							}
-							magicalCode = append(magicalCode, value)
-						}
-					default:
+
+			switch t := f.Type().(type) {
+			case *types.Struct:
+				for i := 0; i < t.NumFields(); i++ {
+					f := t.Field(i)
+					var value *jen.Statement = jen.Id(objectID).Op(".").Id(f.Name()).Op("=")
+					err := writeType(f.Type(), nonil, value)
+					if err != nil {
+						return err
 					}
-					//spew.Dump(g.defs[t.Sel])
+					magicalCode = append(magicalCode, value)
 				}
+			default:
 			}
 			continue
 		}
 
-		if typ := g.defs[st.Fields.List[i].Names[0]]; typ != nil {
-
-			var value *jen.Statement = jen.Id(objectID).Op(".").Id(st.Fields.List[i].Names[0].Name).Op("=")
-			err := writeType(typ.Type(), nonil, value)
-			if err != nil {
-				return err
-			}
-
-			magicalCode = append(magicalCode, value)
-
+		var value *jen.Statement = jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=")
+		err := writeType(f.Type(), nonil, value)
+		if err != nil {
+			return err
 		}
+
+		magicalCode = append(magicalCode, value)
 
 	}
 
-	g.buf.Func().Params(jen.Id(objectID).Op("*").Id(t.Name.Name)).Id("Reset").Params().Block(
+	g.buf.Func().Params(jen.Id(idObjectID).Op("*").Id(objectID)).Id("Reset").Params().Block(
 		// here generate the code
 		magicalCode...,
 	)
