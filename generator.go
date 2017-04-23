@@ -114,7 +114,7 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 		if st.Fields.List[i].Tag != nil {
 			bst := reflect.StructTag(strings.Trim(st.Fields.List[i].Tag.Value, "`"))
 			var tc string
-			if tc = bst.Get("reset"); tc == "nonil" {
+			if tc = bst.Get("zerogen"); tc == "nonil" {
 				nonil = true
 			}
 		}
