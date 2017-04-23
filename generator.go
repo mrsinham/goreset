@@ -102,13 +102,6 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 	objectID := string(t.Name.Name[0])
 	for i := range st.Fields.List {
 
-		// fieds with names
-		if len(st.Fields.List[i].Names) == 0 {
-
-			// TODO here lies the inheritance by composition
-			continue
-		}
-
 		var nonil bool
 		// read the current tags
 		if st.Fields.List[i].Tag != nil {
@@ -117,6 +110,35 @@ func (g *generator) doOne(t *ast.TypeSpec) error {
 			if tc = bst.Get("zerogen"); tc == "nonil" {
 				nonil = true
 			}
+		}
+
+		// fieds without names
+		if len(st.Fields.List[i].Names) == 0 {
+
+			// TODO interface
+
+			// TODO here lies the inheritance by composition
+			//spew.Dump(st.Fields.List[i], g.defs)
+			switch t := st.Fields.List[i].Type.(type) {
+			case *ast.SelectorExpr:
+				if g.defs[t.Sel] != nil {
+					switch v := g.defs[t.Sel].Type().Underlying().(type) {
+					case *types.Struct:
+						for i := 0; i < v.NumFields(); i++ {
+							f := v.Field(i)
+							var value *jen.Statement = jen.Id(objectID).Op(".").Id(f.Name()).Op("=")
+							err := writeType(f.Type(), nonil, value)
+							if err != nil {
+								return err
+							}
+							magicalCode = append(magicalCode, value)
+						}
+					default:
+					}
+					//spew.Dump(g.defs[t.Sel])
+				}
+			}
+			continue
 		}
 
 		if typ := g.defs[st.Fields.List[i].Names[0]]; typ != nil {
@@ -205,6 +227,12 @@ func writeType(typ types.Type, nonil bool, value *jen.Statement) error {
 		value.Nil()
 	case *types.Interface:
 		value.Nil()
+	case *types.Struct:
+		v, err := write(typ)
+		if err != nil {
+			return err
+		}
+		value.Add(v).Block()
 	default:
 		return errors.New("unsupported type")
 	}
@@ -274,6 +302,13 @@ func write(typ types.Type) (*jen.Statement, error) {
 			return jen.Qual(id[:o], id[o+1:]), nil
 		} else {
 			return jen.Op(id), nil
+		}
+	case *types.Struct:
+		if o := strings.LastIndex(t.String(), "."); o >= 0 {
+			return jen.Qual(t.String()[:o], t.String()[o+1:]), nil
+		} else {
+			// op is not the right method, it should be a
+			return jen.Id(t.String()), nil
 		}
 	default:
 		return nil, fmt.Errorf("unsupported type %v", t.String())
