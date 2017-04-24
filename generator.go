@@ -90,7 +90,7 @@ func (g *generator) do() error {
 				idObjectID := objectID[:1]
 
 				var magicalCode []jen.Code
-				magicalCode, err = g.doOne(curType, curType)
+				magicalCode, _, err = g.doOne(curType, curType)
 				if err != nil {
 					return err
 				}
@@ -108,7 +108,7 @@ func (g *generator) do() error {
 	return g.buf.Render(g.w)
 }
 
-func (g *generator) doOne(t types.Type, parent types.Type) (magicalCode []jen.Code, err error) {
+func (g *generator) doOne(t types.Type, parent types.Type) (magicalCode []jen.Code, hasUnexportedField bool, err error) {
 	var st *types.Struct
 	var ok bool
 	if st, ok = t.Underlying().(*types.Struct); !ok {
@@ -128,8 +128,14 @@ func (g *generator) doOne(t types.Type, parent types.Type) (magicalCode []jen.Co
 	idObjectID := objectID[:1]
 
 	for i := 0; i < st.NumFields(); i++ {
+
 		f := st.Field(i)
 
+		// son and unexported field
+		if t.String() != parent.String() && !f.Exported() {
+			hasUnexportedField = true
+			continue
+		}
 		var nonil bool
 		// read the current tags
 
@@ -148,14 +154,33 @@ func (g *generator) doOne(t types.Type, parent types.Type) (magicalCode []jen.Co
 			case *types.Interface:
 				magicalCode = append(magicalCode, jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=").Nil())
 			case *types.Struct:
+				// TODO: if hierarchy has unexported field, stop here and instanciate
 
 				// recursive way
 				var mc []jen.Code
-				mc, err = g.doOne(inner, t)
+				var unexported bool
+				mc, unexported, err = g.doOne(inner, t)
 				if err != nil {
 					return
 				}
-				magicalCode = append(magicalCode, mc...)
+
+				if unexported {
+					if t.String() != parent.String() {
+						hasUnexportedField = true
+						return
+					} else {
+						// hierarchy has unexported field, reinstanciating the field
+						var value *jen.Statement = jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=")
+						err = writeType(f.Type(), nonil, value)
+						if err != nil {
+							return
+						}
+
+						magicalCode = append(magicalCode, value)
+					}
+				} else {
+					magicalCode = append(magicalCode, mc...)
+				}
 			default:
 				err = fmt.Errorf("anonymous field of type %q not handled yet", t.String())
 				return
