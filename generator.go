@@ -87,7 +87,7 @@ func (g *generator) do() error {
 					return nil
 				}
 				objectID := string(at[len(at)-1])
-				idObjectID := objectID[:1]
+				idObjectID := strings.ToLower(objectID[:1])
 
 				var magicalCode []jen.Code
 				magicalCode, _, err = g.doOne(curType, curType)
@@ -125,7 +125,7 @@ func (g *generator) doOne(t types.Type, parent types.Type) (magicalCode []jen.Co
 		return
 	}
 	objectID := string(at[len(at)-1])
-	idObjectID := objectID[:1]
+	idObjectID := strings.ToLower(objectID[:1])
 
 	for i := 0; i < st.NumFields(); i++ {
 

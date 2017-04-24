@@ -21,7 +21,7 @@ func main() {
 	chosenStruct := app.StringArg("STRUCTURE", "", "structure to attach to Reset() method to")
 
 	// write
-	write := app.BoolOpt("w", false, "writes the result in file")
+	write := app.BoolOpt("w write", false, "writes the result in file")
 
 	exitOnError := func(err error) {
 		fmt.Println(err)
@@ -77,14 +77,21 @@ func parsePackage(pkg *string, structure *string, write *bool) error {
 	}
 
 	for i := range f {
+		var files []*ast.File
+		for j := range f[i].Files {
+			files = append(files, f[i].Files[j])
+
+		}
+
 		for j := range f[i].Files {
 			if !strings.Contains(j, "_reset.go") {
-				err = generate(fset, f[i].Files[j], pkgdir, i, j, *structure, writeToFile)
+				err = generate(fset, f[i], files, pkgdir, i, j, *structure, writeToFile)
 				if err != nil {
 					return err
 				}
 			}
 		}
+
 	}
 
 	return nil

@@ -47,7 +47,8 @@ func (s *structFinder) matches() []*ast.TypeSpec {
 
 func generate(
 	set *token.FileSet,
-	currentFile *ast.File,
+	currentPackage *ast.Package,
+	allFiles []*ast.File,
 	dirname string,
 	pkgName string,
 	fileName string,
@@ -55,7 +56,7 @@ func generate(
 	write bool,
 ) error {
 	sf := newStructFinder(structToFind)
-	ast.Inspect(currentFile, sf.find)
+	ast.Inspect(currentPackage, sf.find)
 
 	// structure not found
 	if len(sf.matches()) == 0 {
@@ -78,6 +79,6 @@ func generate(
 		}
 	}
 
-	g := newGenerator(sf.matches(), dirname, []*ast.File{currentFile}, set, pkgName, writer)
+	g := newGenerator(sf.matches(), dirname, allFiles, set, pkgName, writer)
 	return g.do()
 }
