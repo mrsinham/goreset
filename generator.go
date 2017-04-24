@@ -77,13 +77,28 @@ func (g *generator) do() error {
 		}
 	}
 	for i := range g.structures {
-		switch	 g.structures[i].Type.(type) {
+		switch g.structures[i].Type.(type) {
 		case *ast.StructType:
 			if g.defs[g.structures[i].Name] != nil {
-				err = g.doOne(g.defs[g.structures[i].Name].Type())
+				curType := g.defs[g.structures[i].Name].Type()
+				at := strings.Split(curType.String(), ".")
+
+				if len(at) == 0 {
+					return nil
+				}
+				objectID := string(at[len(at)-1])
+				idObjectID := objectID[:1]
+
+				var magicalCode []jen.Code
+				magicalCode, err = g.doOne(curType, curType)
 				if err != nil {
 					return err
 				}
+
+				g.buf.Func().Params(jen.Id(idObjectID).Op("*").Id(objectID)).Id("Reset").Params().Block(
+					// here generate the code
+					magicalCode...,
+				)
 			}
 		default:
 		}
@@ -93,26 +108,24 @@ func (g *generator) do() error {
 	return g.buf.Render(g.w)
 }
 
-func (g *generator) doOne(t types.Type) error {
+func (g *generator) doOne(t types.Type, parent types.Type) (magicalCode []jen.Code, err error) {
 	var st *types.Struct
 	var ok bool
 	if st, ok = t.Underlying().(*types.Struct); !ok {
-		// TODO: prevent generator to receive only valid structure
-		return errors.New("type spec is not a structtype")
+		err = errors.New("type spec is not a structtype")
+		return
 	}
 
 	// write structure func header
 
-	var magicalCode []jen.Code
-
 	// TODO: ensure that st.Fields is not empty
-	at := strings.Split(t.String(), ".")
+	at := strings.Split(parent.String(), ".")
 
 	if len(at) == 0 {
-		return nil
+		return
 	}
 	objectID := string(at[len(at)-1])
-	idObjectID := objectID[0:1]
+	idObjectID := objectID[:1]
 
 	for i := 0; i < st.NumFields(); i++ {
 		f := st.Field(i)
@@ -129,44 +142,38 @@ func (g *generator) doOne(t types.Type) error {
 		}
 
 		// fieds without names
-		if f.String() == "" {
+		if f.Anonymous() {
 
-			// TODO interface
-
-			// TODO here lies the inheritance by composition
-
-			switch t := f.Type().(type) {
+			switch inner := f.Type().Underlying().(type) {
+			case *types.Interface:
+				magicalCode = append(magicalCode, jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=").Nil())
 			case *types.Struct:
-				for i := 0; i < t.NumFields(); i++ {
-					f := t.Field(i)
-					var value *jen.Statement = jen.Id(objectID).Op(".").Id(f.Name()).Op("=")
-					err := writeType(f.Type(), nonil, value)
-					if err != nil {
-						return err
-					}
-					magicalCode = append(magicalCode, value)
+
+				// recursive way
+				var mc []jen.Code
+				mc, err = g.doOne(inner, t)
+				if err != nil {
+					return
 				}
+				magicalCode = append(magicalCode, mc...)
 			default:
+				err = fmt.Errorf("anonymous field of type %q not handled yet", t.String())
+				return
 			}
 			continue
 		}
 
 		var value *jen.Statement = jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=")
-		err := writeType(f.Type(), nonil, value)
+		err = writeType(f.Type(), nonil, value)
 		if err != nil {
-			return err
+			return
 		}
 
 		magicalCode = append(magicalCode, value)
 
 	}
 
-	g.buf.Func().Params(jen.Id(idObjectID).Op("*").Id(objectID)).Id("Reset").Params().Block(
-		// here generate the code
-		magicalCode...,
-	)
-
-	return nil
+	return
 }
 
 func writeType(typ types.Type, nonil bool, value *jen.Statement) error {
