@@ -3,10 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
-
+	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/jawher/mow.cli"
@@ -58,8 +60,18 @@ func parsePackage(pkg *string, structure *string, write *bool) error {
 	// get the path of the package
 	pkgdir := os.Getenv("GOPATH") + "/src/" + *pkg
 
+	// reinstall package to be sure that we are uptodate
+
+	c := exec.Command(runtime.GOROOT()+"/bin/go", []string{"install", *pkg}...)
+	c.Stderr = os.Stderr
+	err := c.Run()
+	if err != nil {
+		return err
+	}
+
 	fset := token.NewFileSet()
-	f, err := parser.ParseDir(fset, pkgdir, nil, 0)
+	var f map[string]*ast.Package
+	f, err = parser.ParseDir(fset, pkgdir, nil, 0)
 	if err != nil {
 		return err
 	}

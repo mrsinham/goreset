@@ -159,7 +159,7 @@ func (g *generator) doOne(t types.Type, parent types.Type) (magicalCode []jen.Co
 				// recursive way
 				var mc []jen.Code
 				var unexported bool
-				mc, unexported, err = g.doOne(inner, t)
+				mc, unexported, err = g.doOne(inner, parent)
 				if err != nil {
 					return
 				}
