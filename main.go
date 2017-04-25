@@ -85,7 +85,7 @@ func parsePackage(pkg *string, structure *string, write *bool) error {
 
 		for j := range f[i].Files {
 			if !strings.Contains(j, "_reset.go") {
-				err = generate(fset, f[i], files, pkgdir, i, j, *structure, writeToFile)
+				err = generate(fset, f[i].Files[j], files, pkgdir, i, j, *structure, writeToFile)
 				if err != nil {
 					return err
 				}

@@ -118,3 +118,4 @@ func (m *mystructure) Reset() {
 - [X] interface by composition
 - [X] nonil on inherited fields
 - [X] inherited of inherited fields of inherited...
+- [ ] detection of field Reset() method

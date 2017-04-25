@@ -11,12 +11,13 @@ import (
 )
 
 type structFinder struct {
-	name  string
-	found []*ast.TypeSpec
+	name     string
+	filename string
+	found    []*ast.TypeSpec
 }
 
-func newStructFinder(name string) *structFinder {
-	return &structFinder{name: name}
+func newStructFinder(name string, filename string) *structFinder {
+	return &structFinder{name: name, filename: filename}
 }
 
 func (s *structFinder) find(n ast.Node) bool {
@@ -47,7 +48,7 @@ func (s *structFinder) matches() []*ast.TypeSpec {
 
 func generate(
 	set *token.FileSet,
-	currentPackage ast.Node,
+	currentFile *ast.File,
 	allFiles []*ast.File,
 	dirname string,
 	pkgName string,
@@ -55,8 +56,8 @@ func generate(
 	structToFind string,
 	write bool,
 ) error {
-	sf := newStructFinder(structToFind)
-	ast.Inspect(currentPackage, sf.find)
+	sf := newStructFinder(structToFind, fileName)
+	ast.Inspect(currentFile, sf.find)
 
 	// structure not found
 	if len(sf.matches()) == 0 {
