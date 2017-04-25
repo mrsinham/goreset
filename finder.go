@@ -47,7 +47,7 @@ func (s *structFinder) matches() []*ast.TypeSpec {
 
 func generate(
 	set *token.FileSet,
-	currentPackage *ast.Package,
+	currentPackage ast.Node,
 	allFiles []*ast.File,
 	dirname string,
 	pkgName string,

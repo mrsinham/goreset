@@ -86,7 +86,7 @@ func (g *generator) do() error {
 				if len(at) == 0 {
 					return nil
 				}
-				objectID := string(at[len(at)-1])
+				objectID := at[len(at)-1]
 				idObjectID := strings.ToLower(objectID[:1])
 
 				var magicalCode []jen.Code
@@ -116,15 +116,12 @@ func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []strin
 		return
 	}
 
-	// write structure func header
-
-	// TODO: ensure that st.Fields is not empty
 	at := strings.Split(parent.String(), ".")
 
 	if len(at) == 0 {
 		return
 	}
-	objectID := string(at[len(at)-1])
+	objectID := at[len(at)-1]
 	idObjectID := strings.ToLower(objectID[:1])
 
 	for i := 0; i < st.NumFields(); i++ {
@@ -137,8 +134,7 @@ func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []strin
 			continue
 		}
 
-		var newHierarchy []string
-		newHierarchy = append(fieldHierarcy, f.Name())
+		newHierarchy := append(fieldHierarcy, f.Name())
 
 		var nonil bool
 		// read the current tags
@@ -158,7 +154,6 @@ func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []strin
 			case *types.Interface:
 				magicalCode = append(magicalCode, jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=").Nil())
 			case *types.Struct:
-				// TODO: if hierarchy has unexported field, stop here and instanciate
 
 				// recursive way
 				var mc []jen.Code
@@ -170,7 +165,7 @@ func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []strin
 
 				if unexported {
 
-					var value *jen.Statement = jen.Id(idObjectID)
+					value := jen.Id(idObjectID)
 					for i := range newHierarchy {
 						value.Op(".").Id(newHierarchy[i])
 					}
@@ -190,7 +185,7 @@ func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []strin
 			continue
 		}
 
-		var value *jen.Statement = jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=")
+		value := jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=")
 		err = writeType(f.Type(), nonil, value)
 		if err != nil {
 			return
@@ -284,16 +279,14 @@ func write(typ types.Type) (*jen.Statement, error) {
 	case *types.Basic:
 		if o := strings.LastIndex(t.String(), "."); o >= 0 {
 			return jen.Qual(t.String()[:o], t.String()[o+1:]), nil
-		} else {
-			// op is not the right method, it should be a
-			return jen.Id(t.String()), nil
 		}
+		// op is not the right method, it should be a
+		return jen.Id(t.String()), nil
 	case *types.Named:
 		if o := strings.LastIndex(t.String(), "."); o >= 0 {
 			return jen.Qual(t.String()[:o], t.String()[o+1:]), nil
-		} else {
-			return jen.Lit(t.String()), nil
 		}
+		return jen.Lit(t.String()), nil
 	case *types.Map:
 		key, err := write(t.Key())
 		if err != nil {
@@ -327,9 +320,8 @@ func write(typ types.Type) (*jen.Statement, error) {
 		id := t.String()[1:]
 		if o := strings.LastIndex(id, "."); o >= 0 {
 			return jen.Op("*").Qual(id[:o], id[o+1:]), nil
-		} else {
-			return jen.Op("*").Lit(id), nil
 		}
+		return jen.Op("*").Lit(id), nil
 	case *types.Chan:
 		el, err := write(t.Elem())
 		if err != nil {
@@ -340,18 +332,15 @@ func write(typ types.Type) (*jen.Statement, error) {
 		id := t.String()
 		if o := strings.LastIndex(id, "."); o >= 0 {
 			return jen.Qual(id[:o], id[o+1:]), nil
-		} else {
-			return jen.Op(id), nil
 		}
+		return jen.Op(id), nil
 	case *types.Struct:
 		if o := strings.LastIndex(t.String(), "."); o >= 0 {
 			return jen.Qual(t.String()[:o], t.String()[o+1:]), nil
-		} else {
-			// op is not the right method, it should be a
-			return jen.Id(t.String()), nil
 		}
+		// op is not the right method, it should be a
+		return jen.Id(t.String()), nil
 	default:
 		return nil, fmt.Errorf("unsupported type %v", t.String())
 	}
-	return nil, nil
 }
