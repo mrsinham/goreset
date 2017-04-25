@@ -90,7 +90,7 @@ func (g *generator) do() error {
 				idObjectID := strings.ToLower(objectID[:1])
 
 				var magicalCode []jen.Code
-				magicalCode, _, err = g.doOne(curType, curType)
+				magicalCode, _, err = g.doOne(curType, curType, nil)
 				if err != nil {
 					return err
 				}
@@ -108,7 +108,7 @@ func (g *generator) do() error {
 	return g.buf.Render(g.w)
 }
 
-func (g *generator) doOne(t types.Type, parent types.Type) (magicalCode []jen.Code, hasUnexportedField bool, err error) {
+func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []string) (magicalCode []jen.Code, hasUnexportedField bool, err error) {
 	var st *types.Struct
 	var ok bool
 	if st, ok = t.Underlying().(*types.Struct); !ok {
@@ -136,6 +136,10 @@ func (g *generator) doOne(t types.Type, parent types.Type) (magicalCode []jen.Co
 			hasUnexportedField = true
 			continue
 		}
+
+		var newHierarchy []string
+		newHierarchy = append(fieldHierarcy, f.Name())
+
 		var nonil bool
 		// read the current tags
 
@@ -159,25 +163,23 @@ func (g *generator) doOne(t types.Type, parent types.Type) (magicalCode []jen.Co
 				// recursive way
 				var mc []jen.Code
 				var unexported bool
-				mc, unexported, err = g.doOne(inner, parent)
+				mc, unexported, err = g.doOne(inner, parent, newHierarchy)
 				if err != nil {
 					return
 				}
 
 				if unexported {
-					if t.String() != parent.String() {
-						hasUnexportedField = true
-						return
-					} else {
-						// hierarchy has unexported field, reinstanciating the field
-						var value *jen.Statement = jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=")
-						err = writeType(f.Type(), nonil, value)
-						if err != nil {
-							return
-						}
 
-						magicalCode = append(magicalCode, value)
+					var value *jen.Statement = jen.Id(idObjectID)
+					for i := range newHierarchy {
+						value.Op(".").Id(newHierarchy[i])
 					}
+					value.Op("=")
+					err = writeType(f.Type(), nonil, value)
+					if err != nil {
+						return
+					}
+					magicalCode = append(magicalCode, value)
 				} else {
 					magicalCode = append(magicalCode, mc...)
 				}

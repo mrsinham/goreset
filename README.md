@@ -114,7 +114,7 @@ func (m *mystructure) Reset() {
 
 # TODO
 
-- [ ] interface by composition
-- [ ] autobuild of dependencies (to be up to date with code)
-- [ ] nonil on inherited fields
-- [ ] inherited of inherited fields of inherited...
+- [X] autobuild of dependencies (to be up to date with code)
+- [X] interface by composition
+- [X] nonil on inherited fields
+- [X] inherited of inherited fields of inherited...
