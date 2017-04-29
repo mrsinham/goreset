@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 
+	"io"
+
 	"github.com/jawher/mow.cli"
 )
 
@@ -29,7 +31,7 @@ func main() {
 	}
 	var err error
 	app.Action = func() {
-		err = parsePackage(chosenPackage, chosenStruct, write)
+		err = parsePackage(chosenPackage, chosenStruct, write, nil)
 		if err != nil {
 			exitOnError(err)
 		}
@@ -42,7 +44,7 @@ func main() {
 }
 
 // parsePackage launchs the generation
-func parsePackage(pkg *string, structure *string, write *bool) error {
+func parsePackage(pkg *string, structure *string, write *bool, customWriter io.Writer) error {
 
 	if pkg == nil {
 		return errors.New("no directory submitted")
@@ -85,7 +87,7 @@ func parsePackage(pkg *string, structure *string, write *bool) error {
 
 		for j := range f[i].Files {
 			if !strings.Contains(j, "_reset.go") {
-				err = generate(fset, f[i].Files[j], files, pkgdir, i, j, *structure, writeToFile)
+				err = generate(fset, f[i].Files[j], files, pkgdir, i, j, *structure, writeToFile, customWriter)
 				if err != nil {
 					return err
 				}

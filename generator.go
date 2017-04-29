@@ -128,6 +128,8 @@ func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []strin
 
 		f := st.Field(i)
 
+		//ms := types.NewMethodSet(f.Type())
+		//spew.Dump(ms)
 		// son and unexported field
 		if t.String() != parent.String() && !f.Exported() {
 			hasUnexportedField = true

@@ -55,6 +55,7 @@ func generate(
 	fileName string,
 	structToFind string,
 	write bool,
+	customWriter io.Writer,
 ) error {
 	sf := newStructFinder(structToFind, fileName)
 	ast.Inspect(currentFile, sf.find)
@@ -66,7 +67,11 @@ func generate(
 
 	var writer io.Writer
 	if !write {
-		writer = os.Stdout
+		if customWriter != nil {
+			writer = customWriter
+		} else {
+			writer = os.Stdout
+		}
 	} else {
 		resetFile := strings.Replace(fileName, ".go", "_reset.go", 1)
 		// delete if needed
