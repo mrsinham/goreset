@@ -90,7 +90,7 @@ func (g *generator) do() error {
 				idObjectID := strings.ToLower(objectID[:1])
 
 				var magicalCode []jen.Code
-				magicalCode, _, err = g.doOne(curType, curType, nil)
+				magicalCode, _, err = g.doOne(g.defs[g.structures[i].Name], g.defs[g.structures[i].Name], nil)
 				if err != nil {
 					return err
 				}
@@ -108,15 +108,16 @@ func (g *generator) do() error {
 	return g.buf.Render(g.w)
 }
 
-func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []string) (magicalCode []jen.Code, hasUnexportedField bool, err error) {
+func (g *generator) doOne(t types.Object, parent types.Object, fieldHierarcy []string) (magicalCode []jen.Code, hasUnexportedField bool, err error) {
+
 	var st *types.Struct
 	var ok bool
-	if st, ok = t.Underlying().(*types.Struct); !ok {
+	if st, ok = t.Type().Underlying().(*types.Struct); !ok {
 		err = errors.New("type spec is not a structtype")
 		return
 	}
 
-	at := strings.Split(parent.String(), ".")
+	at := strings.Split(parent.Type().String(), ".")
 
 	if len(at) == 0 {
 		return
@@ -133,7 +134,6 @@ func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []strin
 		// son and unexported field
 		if t.String() != parent.String() && !f.Exported() {
 			hasUnexportedField = true
-			continue
 		}
 
 		newHierarchy := append(fieldHierarcy, f.Name())
@@ -152,7 +152,7 @@ func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []strin
 		// fieds without names
 		if f.Anonymous() {
 
-			switch inner := f.Type().Underlying().(type) {
+			switch f.Type().Underlying().(type) {
 			case *types.Interface:
 				magicalCode = append(magicalCode, jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=").Nil())
 			case *types.Struct:
@@ -160,12 +160,12 @@ func (g *generator) doOne(t types.Type, parent types.Type, fieldHierarcy []strin
 				// recursive way
 				var mc []jen.Code
 				var unexported bool
-				mc, unexported, err = g.doOne(inner, parent, newHierarchy)
+				mc, unexported, err = g.doOne(f, parent, newHierarchy)
 				if err != nil {
 					return
 				}
 
-				if unexported {
+				if unexported && !samePackage(f, t) {
 
 					value := jen.Id(idObjectID)
 					for i := range newHierarchy {
@@ -345,4 +345,8 @@ func write(typ types.Type) (*jen.Statement, error) {
 	default:
 		return nil, fmt.Errorf("unsupported type %v", t.String())
 	}
+}
+
+func samePackage(t types.Object, t2 types.Object) bool {
+	return t.Pkg().Path() == t2.Pkg().Path()
 }
