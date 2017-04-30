@@ -348,5 +348,14 @@ func write(typ types.Type) (*jen.Statement, error) {
 }
 
 func samePackage(t types.Object, t2 types.Object) bool {
-	return t.Pkg().Path() == t2.Pkg().Path()
+	return packageFromType(t.Type()) == packageFromType(t2.Type())
+}
+
+func packageFromType(t types.Type) string {
+	id := t.String()
+	o := strings.LastIndex(id, ".")
+	if o < 0 {
+		return ""
+	}
+	return id[:o]
 }
