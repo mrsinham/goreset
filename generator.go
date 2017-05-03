@@ -154,8 +154,36 @@ func (g *generator) doOne(t types.Object, parent types.Object, fieldHierarcy []s
 
 			switch f.Type().Underlying().(type) {
 			case *types.Interface:
-				magicalCode = append(magicalCode, jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=").Nil())
+				setNull := jen.Id(idObjectID).Op(".").Id(f.Name()).Op("=").Nil()
+				var value jen.Code
+				if hasResetMethod(f) {
+					call := jen.Id(idObjectID)
+					for i := range newHierarchy {
+						call.Op(".").Id(newHierarchy[i])
+					}
+
+					value = jen.If(call.Clone().Add(jen.Op("!=").Nil())).Block(
+						call.Clone().Op(".").Id("Reset").Call(),
+					).Else().Block(
+						setNull,
+					)
+				} else {
+					value = setNull
+				}
+
+				magicalCode = append(magicalCode, value)
 			case *types.Struct:
+
+				if hasResetMethod(f) {
+					// reset method, call it
+					value := jen.Id(idObjectID)
+					for i := range newHierarchy {
+						value.Op(".").Id(newHierarchy[i])
+					}
+					value.Op(".").Id("Reset").Call()
+					magicalCode = append(magicalCode, value)
+					continue
+				}
 
 				// recursive way
 				var mc []jen.Code
@@ -358,4 +386,22 @@ func packageFromType(t types.Type) string {
 		return ""
 	}
 	return id[:o]
+}
+
+func hasResetMethod(o types.Object) bool {
+
+	a := []types.Type{o.Type(), types.NewPointer(o.Type())}
+	for i := range a {
+		ms := types.NewMethodSet(a[i])
+		for j := 0; j < ms.Len(); j++ {
+			object := ms.At(j).Obj()
+			if m, ok := object.(*types.Func); ok {
+
+				if strings.Contains(m.String(), "Reset()") {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
