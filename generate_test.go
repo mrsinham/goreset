@@ -24,8 +24,13 @@ func (s *simple) Reset() {
 	s.field3 = nil
 	s.field4 = [3]int{}
 	s.field5 = nil
+	s.field6 = 0.0
+	s.field7 = 0.0
+	s.field8 = 0
+	s.field9 = 0
 }
 `
+
 	if b.String() != result {
 		t.Fatalf("result is not the same as expected : got \n%q \n expected  \n%q	", b.String(), result)
 	}

@@ -247,6 +247,13 @@ func writeType(value *jen.Statement, typ types.Type, nonil bool) error {
 		if bi&types.IsString != 0 {
 			value.Lit("")
 		}
+		if bi&types.IsFloat != 0 {
+			value.Lit(0.0)
+		}
+		if bi&types.IsComplex != 0 {
+			value.Lit(0)
+		}
+
 	case *types.Array:
 		v, err := write(t)
 		if err != nil {

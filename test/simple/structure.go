@@ -8,4 +8,8 @@ type simple struct {
 	field3 []string
 	field4 [3]int
 	field5 *http.Client
+	field6 float32
+	field7 float64
+	field8 complex64
+	field9 complex128
 }
