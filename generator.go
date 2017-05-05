@@ -166,6 +166,7 @@ func (g *generator) doOne(grp *jen.Group, t types.Object, parent types.Object, f
 
 		// fields with names
 		if !f.Anonymous() {
+
 			var err error
 			grp.Id(idObjectID).Dot(f.Name()).Op("=").Do(func(s *jen.Statement) {
 				err = writeType(s, f.Type(), nonil)
@@ -382,6 +383,21 @@ func write(typ types.Type) (*jen.Statement, error) {
 		return jen.Id(id), nil
 	case *types.Struct:
 		id := t.String()
+		if strings.Index(id, "struct{") == 0 {
+			// anonymous structure
+			var err error
+			val := jen.StructFunc(func(g *jen.Group) {
+				for i := 0; i < t.NumFields(); i++ {
+					var ct *jen.Statement
+					ct, err = write(t.Field(i).Type())
+					if err != nil {
+						return
+					}
+					g.Id(t.Field(i).Name()).Add(ct)
+				}
+			})
+			return val, err
+		}
 		if o := strings.LastIndex(id, "."); o >= 0 {
 			return jen.Qual(id[:o], id[o+1:]), nil
 		}
