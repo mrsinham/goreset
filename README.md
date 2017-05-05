@@ -83,7 +83,7 @@ func (m *mystructure) Reset() {
 ## Reinstanciate fields
 
 Sometimes you don't want to have the zero value, you want to have those already instanciated. 
-For this you cant use the **zerogen:nonil** tag. 
+For this you cant use the **zg:"nonil"** tag. 
 
 ```go
 package mypackage
@@ -91,8 +91,8 @@ package mypackage
 import "net/http"
 
 type mystructure struct {
-	field1 *http.Client `zerogen:"nonil"`
-	field2 []chan *http.Client `zerogen:"nonil"`
+	field1 *http.Client `zg:"nonil"`
+	field2 []chan *http.Client `zg:"nonil"`
 }
 
 ```
@@ -118,4 +118,5 @@ func (m *mystructure) Reset() {
 - [X] interface by composition
 - [X] nonil on inherited fields
 - [X] inherited of inherited fields of inherited...
-- [ ] detection of field Reset() method
+- [X] detection of Reset() method on composition
+- [ ] detection of reset method of fields
