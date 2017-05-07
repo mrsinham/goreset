@@ -35,7 +35,6 @@ $ goreset github.com/me/mypackage mystructure
 you will have this output :
 
 ```go
-goreset
 package mypackage
 
 func (m *mystructure) Reset() {
@@ -68,7 +67,6 @@ type mystructure struct {
 gives you :
 
 ```go
-goreset
 package mypackage
 
 func (m *mystructure) Reset() {
