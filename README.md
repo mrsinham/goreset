@@ -10,7 +10,7 @@ Just run zerogen and be sure that the reset method will wipe clean your instanci
 ## Installation
 
 ```sh
-go get github.com/mrsinham/zerogen
+go get github.com/mrsinham/goreset
 ```
 
 ## Usage
