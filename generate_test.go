@@ -28,6 +28,7 @@ func (s *simple) Reset() {
 	s.field7 = 0.0
 	s.field8 = 0
 	s.field9 = 0
+	s.field10 = false
 }
 `
 

@@ -255,6 +255,9 @@ func writeValue(value *jen.Statement, typ types.Type, nonil bool) error {
 		if bi&types.IsComplex != 0 {
 			value.Lit(0)
 		}
+		if bi&types.IsBoolean != 0 {
+			value.Lit(false)
+		}
 
 	case *types.Array:
 		v, err := writeType(t)
