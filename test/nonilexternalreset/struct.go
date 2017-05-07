@@ -1,6 +1,6 @@
 package nonilexternalreset
 
-import "github.com/mrsinham/zerogen/test/nonil/external"
+import "github.com/mrsinham/goreset/test/nonil/external"
 
 type nonilExternalWithReset struct {
 	Field1 int

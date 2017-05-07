@@ -1,6 +1,6 @@
 package compositionexternal
 
-import "github.com/mrsinham/zerogen/test/compositionexternal/sub"
+import "github.com/mrsinham/goreset/test/compositionexternal/sub"
 
 type compositionNotExported struct {
 	field1 string

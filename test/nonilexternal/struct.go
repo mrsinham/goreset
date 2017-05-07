@@ -1,6 +1,6 @@
 package nonilexternal
 
-import "github.com/mrsinham/zerogen/test/nonilexternal/external"
+import "github.com/mrsinham/goreset/test/nonilexternal/external"
 
 type nonilexternal struct {
 	field1 int
