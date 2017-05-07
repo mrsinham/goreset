@@ -159,7 +159,7 @@ func (g *generator) doOne(grp *jen.Group, t types.Object, parent types.Object, f
 		if st.Tag(i) != "" {
 			bst := reflect.StructTag(strings.Trim(st.Tag(i), "`"))
 			var tc string
-			if tc = bst.Get("zg"); tc == "nonil" {
+			if tc = bst.Get("reset"); tc == "nonil" {
 				nonil = true
 			}
 		}

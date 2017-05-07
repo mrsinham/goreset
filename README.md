@@ -1,4 +1,6 @@
-# Zerogen
+[![Build Status](https://travis-ci.org/mrsinham/goreset.svg?branch=master)](https://travis-ci.org/mrsinham/goreset)
+
+# Goreset
 
 Zerogen generates reset method for any structure, allowing to reuse it easily. It has been written to use sync.pool
 without fear of tricky bugs as one field not properly reset before reuse.
@@ -83,7 +85,7 @@ func (m *mystructure) Reset() {
 ## Reinstanciate fields
 
 Sometimes you don't want to have the zero value, you want to have those already instanciated. 
-For this you cant use the **zg:"nonil"** tag. 
+For this you cant use the **reset:"nonil"** tag. 
 
 ```go
 package mypackage
@@ -91,8 +93,8 @@ package mypackage
 import "net/http"
 
 type mystructure struct {
-	field1 *http.Client `zg:"nonil"`
-	field2 []chan *http.Client `zg:"nonil"`
+	field1 *http.Client `reset:"nonil"`
+	field2 []chan *http.Client `reset:"nonil"`
 }
 
 ```

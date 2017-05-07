@@ -4,5 +4,5 @@ import "net/http"
 
 type nonil struct {
 	field1 [4]int
-	field2 *http.Request `zg:"nonil"`
+	field2 *http.Request `reset:"nonil"`
 }
