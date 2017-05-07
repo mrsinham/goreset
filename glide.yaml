@@ -1,4 +1,4 @@
-package: github.com/mrsinham/zerogen/cmd
+package: github.com/mrsinham/goreset/cmd
 import:
 - package: github.com/dave/jennifer
   version: ~0.13.0

@@ -77,7 +77,7 @@ func generate(
 		// delete if needed
 		_ = os.Remove(resetFile)
 
-		// write to a file
+		// writeType to a file
 		var err error
 		writer, err = os.OpenFile(resetFile, os.O_CREATE|os.O_RDWR, 0600)
 		if err != nil {

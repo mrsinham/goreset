@@ -2,10 +2,10 @@
 
 # Goreset
 
-Zerogen generates reset method for any structure, allowing to reuse it easily. It has been written to use sync.pool
+goreset generates reset method for any structure, allowing to reuse it easily. It has been written to use sync.pool
 without fear of tricky bugs as one field not properly reset before reuse.
 
-Just run zerogen and be sure that the reset method will wipe clean your instanciated structure.
+Just run goreset and be sure that the reset method will wipe clean your instanciated structure.
 
 ## Installation
 
@@ -29,7 +29,7 @@ type mystructure struct {
 if you run :
 
 ```sh
-$ zerogen github.com/me/mypackage mystructure
+$ goreset github.com/me/mypackage mystructure
 ```
 
 you will have this output :
@@ -46,7 +46,7 @@ func (m *mystructure) Reset() {
 
 just add the -w flag to write it to mystructure_reset.go.
 
-Zerogen handles many types as you can see :
+goreset handles many types as you can see :
 
 ```go
 package mypackage
@@ -102,7 +102,7 @@ type mystructure struct {
 gives you :
 
 ```go
-$ go build && ./zerogen github.com/mrsinham/mypackage mystructure   
+$ go build && ./goreset github.com/mrsinham/mypackage mystructure   
 goreset
 package mypackage
 

@@ -85,6 +85,7 @@ func (g *generator) do() error {
 				idObjectID := strings.ToLower(objectID[:1])
 
 				var err error
+				//g.buf.Comment("Reset sets all properties to their zero value")
 				g.buf.Func().Params(
 					jen.Id(idObjectID).Op("*").Id(objectID),
 				).Id("Reset").Params().BlockFunc(func(grp *jen.Group) {
@@ -169,7 +170,7 @@ func (g *generator) doOne(grp *jen.Group, t types.Object, parent types.Object, f
 
 			var err error
 			grp.Id(idObjectID).Dot(f.Name()).Op("=").Do(func(s *jen.Statement) {
-				err = writeType(s, f.Type(), nonil)
+				err = writeValue(s, f.Type(), nonil)
 			})
 			if err != nil {
 				return err
@@ -219,7 +220,7 @@ func (g *generator) doOne(grp *jen.Group, t types.Object, parent types.Object, f
 						s.Dot(newHierarchy[i])
 					}
 				}).Op("=").Do(func(s *jen.Statement) {
-					err = writeType(s, f.Type(), nonil)
+					err = writeValue(s, f.Type(), nonil)
 				})
 				if err != nil {
 					return err
@@ -238,7 +239,7 @@ func (g *generator) doOne(grp *jen.Group, t types.Object, parent types.Object, f
 	return nil
 }
 
-func writeType(value *jen.Statement, typ types.Type, nonil bool) error {
+func writeValue(value *jen.Statement, typ types.Type, nonil bool) error {
 	switch t := typ.Underlying().(type) {
 	case *types.Basic:
 		bi := t.Info()
@@ -256,7 +257,7 @@ func writeType(value *jen.Statement, typ types.Type, nonil bool) error {
 		}
 
 	case *types.Array:
-		v, err := write(t)
+		v, err := writeType(t)
 		if err != nil {
 			return err
 		}
@@ -264,7 +265,7 @@ func writeType(value *jen.Statement, typ types.Type, nonil bool) error {
 		value.Add(v).Block()
 	case *types.Map:
 		if nonil {
-			v, err := write(t)
+			v, err := writeType(t)
 			if err != nil {
 				return err
 			}
@@ -274,8 +275,8 @@ func writeType(value *jen.Statement, typ types.Type, nonil bool) error {
 		}
 	case *types.Pointer:
 		if nonil {
-			// we want to know how to write the underlying object
-			v, err := write(t.Elem())
+			// we want to know how to writeType the underlying object
+			v, err := writeType(t.Elem())
 			if err != nil {
 				return err
 			}
@@ -286,7 +287,7 @@ func writeType(value *jen.Statement, typ types.Type, nonil bool) error {
 		}
 	case *types.Slice:
 		if nonil {
-			v, err := write(t)
+			v, err := writeType(t)
 			if err != nil {
 				return err
 			}
@@ -296,7 +297,7 @@ func writeType(value *jen.Statement, typ types.Type, nonil bool) error {
 		}
 	case *types.Chan:
 		if nonil {
-			v, err := write(t)
+			v, err := writeType(t)
 			if err != nil {
 				return err
 			}
@@ -310,7 +311,7 @@ func writeType(value *jen.Statement, typ types.Type, nonil bool) error {
 	case *types.Interface:
 		value.Nil()
 	case *types.Struct:
-		v, err := write(typ)
+		v, err := writeType(typ)
 		if err != nil {
 			return err
 		}
@@ -321,7 +322,7 @@ func writeType(value *jen.Statement, typ types.Type, nonil bool) error {
 	return nil
 }
 
-func write(typ types.Type) (*jen.Statement, error) {
+func writeType(typ types.Type) (*jen.Statement, error) {
 	switch t := typ.(type) {
 	case *types.Basic:
 		if o := strings.LastIndex(t.String(), "."); o >= 0 {
@@ -335,12 +336,12 @@ func write(typ types.Type) (*jen.Statement, error) {
 		}
 		return jen.Lit(t.String()), nil
 	case *types.Map:
-		key, err := write(t.Key())
+		key, err := writeType(t.Key())
 		if err != nil {
 			return nil, err
 		}
 		var val *jen.Statement
-		val, err = write(t.Elem())
+		val, err = writeType(t.Elem())
 		if err != nil {
 			return nil, err
 		}
@@ -348,7 +349,7 @@ func write(typ types.Type) (*jen.Statement, error) {
 
 	case *types.Array:
 		j := jen.Index(jen.Lit(int(t.Len())))
-		el, err := write(t.Elem())
+		el, err := writeType(t.Elem())
 		if err != nil {
 			return nil, err
 		}
@@ -356,21 +357,20 @@ func write(typ types.Type) (*jen.Statement, error) {
 		return j, nil
 	case *types.Slice:
 		j := jen.Index()
-		el, err := write(t.Elem())
+		el, err := writeType(t.Elem())
 		if err != nil {
 			return nil, err
 		}
 		j.Add(el)
 		return j, nil
 	case *types.Pointer:
-		// remove the pointer star
-		id := t.String()[1:]
-		if o := strings.LastIndex(id, "."); o >= 0 {
-			return jen.Op("*").Qual(id[:o], id[o+1:]), nil
+		v, err := writeType(t.Elem())
+		if err != nil {
+			return nil, err
 		}
-		return jen.Op("*").Lit(id), nil
+		return jen.Op("*").Add(v), nil
 	case *types.Chan:
-		el, err := write(t.Elem())
+		el, err := writeType(t.Elem())
 		if err != nil {
 			return nil, err
 		}
@@ -389,7 +389,7 @@ func write(typ types.Type) (*jen.Statement, error) {
 			val := jen.StructFunc(func(g *jen.Group) {
 				for i := 0; i < t.NumFields(); i++ {
 					var ct *jen.Statement
-					ct, err = write(t.Field(i).Type())
+					ct, err = writeType(t.Field(i).Type())
 					if err != nil {
 						return
 					}
@@ -422,7 +422,6 @@ func packageFromType(t types.Type) string {
 }
 
 func hasResetMethod(o types.Object) bool {
-
 	a := []types.Type{o.Type(), types.NewPointer(o.Type())}
 	for i := range a {
 		ms := types.NewMethodSet(a[i])

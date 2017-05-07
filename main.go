@@ -22,8 +22,8 @@ func main() {
 	chosenPackage := app.StringArg("PKG", "", "package to walk to")
 	chosenStruct := app.StringArg("STRUCTURE", "", "structure to attach to Reset() method to")
 
-	// write
-	write := app.BoolOpt("w write", false, "writes the result in file")
+	// writeType
+	write := app.BoolOpt("w writeType", false, "writes the result in file")
 
 	exitOnError := func(err error) {
 		fmt.Println(err)
