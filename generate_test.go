@@ -29,6 +29,10 @@ func (s *simple) Reset() {
 	s.field8 = 0
 	s.field9 = 0
 	s.field10 = false
+	s.field11 = 0
+	s.field12 = 0
+	s.field13 = 0
+	s.field14 = nil
 }
 `
 

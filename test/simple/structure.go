@@ -13,4 +13,8 @@ type simple struct {
 	field8  complex64
 	field9  complex128
 	field10 bool
+	field11 byte
+	field12 rune
+	field13 uintptr
+	field14 func()
 }
