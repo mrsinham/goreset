@@ -18,12 +18,12 @@ import (
 
 func main() {
 
-	app := cli.App("reset", "generate reset method")
+	app := cli.App("goreset", "generate reset method")
 	chosenPackage := app.StringArg("PKG", "", "package to walk to")
-	chosenStruct := app.StringArg("STRUCTURE", "", "structure to attach to Reset() method to")
+	chosenStruct := app.StringArg("STRUCTURE", "", "structure to attach the Reset() method to")
 
 	// writeType
-	write := app.BoolOpt("w writeType", false, "writes the result in file")
+	write := app.BoolOpt("w write", false, "writes the result in file")
 
 	exitOnError := func(err error) {
 		fmt.Println(err)
